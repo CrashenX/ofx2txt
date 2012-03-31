@@ -1,0 +1,2 @@
+Takes ofx files as input and generates a pipe delimited file with all unique
+transactions.
