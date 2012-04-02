@@ -7,37 +7,41 @@ my $OFX_ENTRY_PREFIX = "ofx_proc_";
 my $OFX_KEYS = { # if the value is 0, those fields will not be processed
     transaction => {
         "Financial institution's ID for this transaction" => {
-            order            => 0,
             new_key          => "id",
             value_parse_func => \&foo
         },
         "Account ID"                                      => {
-            order            => 1,
             new_key          => "account_id",
             value_parse_func => \&foo
         },
         "Date posted"                                     => {
-            order            => 2,
             new_key          => "date",
             value_parse_func => \&foo
         },
         "Transaction type"                                => {
-            order            => 3,
             new_key          => "type",
             value_parse_func => \&foo
         },
         "Total money amount"                              => {
-            order            => 4,
             new_key          => "amount",
             value_parse_func => \&foo
         },
         "Name of payee or transaction description"        => {
-            order            => 5,
             new_key          => "description",
             value_parse_func => \&foo
         },
         "# of units"                                      => 0,
         "Unit price"                                      => 0
+    }
+};
+my $PRINT_ORDER = {
+    transaction => {
+        id          => 0,
+        account_id  => 1,
+        date        => 2,
+        type        => 3,
+        amount      => 4,
+        description => 5
     }
 };
 
@@ -91,6 +95,7 @@ sub parse_line()
     my $new_key    = "";
     my $parse_func = "";
     my $field_hash = "";
+    my $order      = "";
     chomp($line);
 
     @fields = split(/[:]/,$line, 2);
@@ -105,6 +110,7 @@ sub parse_line()
       $ofx_keys->{ $fields[0] }) {
         $new_key    = $ofx_keys->{ $fields[0] }->{ 'new_key' };
         $parse_func = $ofx_keys->{ $fields[0] }->{ 'value_parse_func' };
+        $order      = $ofx_keys->{ $fields[0] }->{ 'order' };
         $entry->{ $new_key } = $parse_func->($fields[1]);
     }
 
@@ -171,10 +177,19 @@ sub main()
     }
 
     while(my ($type, $entry_list) = each(%entries)) {
+        # print output format as comment for each type
+        print "# table";
+        my $order = $PRINT_ORDER->{ $type };
+        for my $column (sort {$order->{$a} <=> $order->{$b}} keys %$order) {
+            print "|$column";
+        }
+        print "\n";
+
+        # print each entry for given type
         for my $entry (@$entry_list) {
             print "$type";
-            while(my ($key, $value) = each(%$entry)) {
-                print "|$value";
+            for my $key (sort {$order->{$a} <=> $order->{$b}} (keys(%$entry))) {
+                print "|$entry->{ $key }";
             }
             print "\n";
         }
