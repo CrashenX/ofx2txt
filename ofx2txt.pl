@@ -5,6 +5,45 @@ use Getopt::Long;
 
 my $OFX_ENTRY_PREFIX = "ofx_proc_";
 my $OFX_KEYS = { # if the value is 0, those fields will not be processed
+    account => {
+        "Account ID"                                      => {
+            new_key          => "id",
+            value_parse_func => \&foo
+        },
+        "Account type"                                    => {
+            new_key          => "type",
+            value_parse_func => \&foo
+        },
+        "Account #"                                       => {
+            new_key          => "number",
+            value_parse_func => \&foo
+        },
+        "Bank ID"                                         => {
+            new_key          => "bank_id",
+            value_parse_func => \&foo
+        },
+        "Account name"                                    => 0,
+        "Currency"                                        => 0
+    },
+    statement => {
+        "Account ID"                                      => {
+            new_key          => "account_id",
+            value_parse_func => \&foo
+        },
+        "Start date of this statement"                    => {
+            new_key          => "start_date",
+            value_parse_func => \&foo
+        },
+        "End date of this statement"                      => {
+            new_key          => "end_date",
+            value_parse_func => \&foo
+        },
+        "Ledger balance"                                  => {
+            new_key          => "balance",
+            value_parse_func => \&foo
+        },
+        "Currency"                                        => 0
+    },
     transaction => {
         "Financial institution's ID for this transaction" => {
             new_key          => "id",
@@ -34,7 +73,20 @@ my $OFX_KEYS = { # if the value is 0, those fields will not be processed
         "Unit price"                                      => 0
     }
 };
+
 my $PRINT_ORDER = {
+    account     => {
+        id          => 0,
+        type        => 1,
+        number      => 2,
+        bank_id     => 3
+    },
+    statement   => {
+        account_id  => 0,
+        start_date  => 1,
+        end_date    => 2,
+        balance     => 3
+    },
     transaction => {
         id          => 0,
         account_id  => 1,
