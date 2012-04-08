@@ -163,6 +163,54 @@ sub parse_file()
         return;
 }
 
+sub unique_entries_as_text()
+{
+    my $type    = shift;
+    my $order   = shift;
+    my $entries = shift;
+    my $text    = "";
+
+    # print each entry for given type
+    for my $entry (@$entries) {
+        $text .= sprintf("%s", $type);
+        for my $key (sort {$order->{$a} <=> $order->{$b}} (keys(%$entry))) {
+            $text .= sprintf("|%s", $entry->{ $key });
+        }
+        $text .= sprintf("\n");
+    }
+    return $text;
+}
+
+sub test()
+{
+    my $files       = shift;
+    my $entries     = shift;
+    my $contents    = "";
+    my @entry_types = keys %$entries;
+
+    for my $file (@$files) {
+        $contents .= `ofxdump $file`;
+    }
+
+    for my $type (@entry_types) {
+        my $count1 = 0;
+        my $count2 = 0;
+        my $order  = $PRINT_ORDER->{ $type };
+        my $parsed = &unique_entries_as_text($type, $order, $entries->{$type});
+
+        ++$count1 while($contents =~ m/^$OFX_ENTRY_PREFIX$type/msg);
+        ++$count2 while($parsed   =~ m/^$type\|/msg);
+
+        if($count1 > $count2) {
+            die("Number of $type(s) in file(s) is more than total parsed.\n");
+        }
+        if($count1 < $count2) {
+            die("Number of $type(s) in file(s) is less than total parsed.\n");
+        }
+    }
+
+}
+
 sub main()
 {
     my $files   = shift;
@@ -185,19 +233,12 @@ sub main()
         }
         print "\n";
 
-        # print each entry for given type
-        for my $entry (@$entry_list) {
-            print "$type";
-            for my $key (sort {$order->{$a} <=> $order->{$b}} (keys(%$entry))) {
-                print "|$entry->{ $key }";
-            }
-            print "\n";
-        }
+        print &unique_entries_as_text($type, $order, $entry_list);
     }
+
+    &test($files, \%entries);
 }
 
 &main(\@files);
 
 exit 0;
-
-
