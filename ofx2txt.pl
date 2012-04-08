@@ -173,7 +173,7 @@ sub parse_file()
 {
     my $filename   = shift;
     my $entries    = shift;
-    my @lines      = `ofxdump $filename`;
+    my @lines      = `ofxdump $filename 2>>ofx.log`;
     my $num_lines  = @lines;
     my $line_num   = 0;
     my $new_entry  = 0;
@@ -215,22 +215,23 @@ sub parse_file()
         return;
 }
 
-sub unique_entries_as_text()
+sub entries_to_list()
 {
     my $type    = shift;
     my $order   = shift;
     my $entries = shift;
-    my $text    = "";
+    my $list    = ();
 
-    # print each entry for given type
+    # each entry for given type
     for my $entry (@$entries) {
-        $text .= sprintf("%s", $type);
+        my $full_entry = "";
+        $full_entry .= sprintf("%s", $type);
         for my $key (sort {$order->{$a} <=> $order->{$b}} (keys(%$entry))) {
-            $text .= sprintf("|%s", $entry->{ $key });
+            $full_entry .= sprintf("|%s", $entry->{ $key });
         }
-        $text .= sprintf("\n");
+        push(@$list, $full_entry);
     }
-    return $text;
+    return $list;
 }
 
 sub test()
@@ -239,34 +240,78 @@ sub test()
     my $entries     = shift;
     my $contents    = "";
     my @entry_types = keys %$entries;
+    my $die_format  =
+        "Number of %s(s) in file(s) is %s than total parsed (%d %s %d).\n";
 
     for my $file (@$files) {
-        $contents .= `ofxdump $file`;
+        $contents .= `ofxdump $file 2>>ofx.log`;
     }
 
     for my $type (@entry_types) {
         my $count1 = 0;
         my $count2 = 0;
         my $order  = $PRINT_ORDER->{ $type };
-        my $parsed = &unique_entries_as_text($type, $order, $entries->{$type});
+        my $parsed = &entries_to_list($type, $order, $entries->{$type});
 
         ++$count1 while($contents =~ m/^$OFX_ENTRY_PREFIX$type/msg);
-        ++$count2 while($parsed   =~ m/^$type\|/msg);
+
+        for my $entry (@$parsed) {
+            ++$count2 if($entry =~ m/^$type\|/msg);
+        }
 
         if($count1 > $count2) {
-            die("Number of $type(s) in file(s) is more than total parsed.\n");
+            my $die_msg =
+                sprintf($die_format, $type, "more", $count1, ">", $count2);
+            die($die_msg);
         }
         if($count1 < $count2) {
-            die("Number of $type(s) in file(s) is less than total parsed.\n");
+            my $die_msg =
+                sprintf($die_format, $type, "less", $count1, "<", $count2);
+            die($die_msg);
+        }
+    }
+}
+
+sub uniq()
+{
+    my $list = shift;
+    my %seen = ();
+    my @uniq = ();
+
+    for my $item (@$list) {
+        unless($seen{$item}) {
+            $seen{$item} = 1;
+            push(@uniq, $item);
+        }
+    }
+    $list = \@uniq;
+
+}
+
+sub sanitize_filenames()
+{
+    my $ifiles = shift;
+    my $ofiles = ();
+
+    for my $file (@$ifiles) {
+        if($file =~ m/^[a-zA-Z0-9_.\/-]+$/) {
+            push(@$ofiles, $file);
+        }
+        else {
+            print STDERR "Filename '$file' not supported; skipping.\n";
+            print STDERR "Supported characters: 'a-zA-Z0-9_.-'.\n\n";
         }
     }
 
+    return $ofiles;
 }
 
 sub main()
 {
-    my $files   = shift;
-    my %entries = ();
+    my $files  = shift;
+    my %entries = (); # type => list of hash tables (each making up an entry)
+
+    $files = &sanitize_filenames($files);
 
     for my $type (keys %$OFX_KEYS)  {
         $entries{ $type } = [];
@@ -285,7 +330,10 @@ sub main()
         }
         print "\n";
 
-        print &unique_entries_as_text($type, $order, $entry_list);
+        my $unique = &uniq(&entries_to_list($type, $order, $entry_list));
+        for my $entry (@$unique) {
+            print "$entry\n";
+        }
     }
 
     &test($files, \%entries);
