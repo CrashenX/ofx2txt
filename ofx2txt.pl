@@ -47,11 +47,11 @@ my $OFX_KEYS = { # if the value is 0, those fields will not be processed
         },
         "Start date of this statement"                    => {
             new_key          => "start_date",
-            value_parse_func => \&date_parse
+            value_parse_func => \&date_parse_naive
         },
         "End date of this statement"                      => {
             new_key          => "end_date",
-            value_parse_func => \&date_parse
+            value_parse_func => \&date_parse_naive
         },
         "Ledger balance"                                  => {
             new_key          => "balance",
@@ -70,7 +70,7 @@ my $OFX_KEYS = { # if the value is 0, those fields will not be processed
         },
         "Date posted"                                     => {
             new_key          => "date",
-            value_parse_func => \&date_parse
+            value_parse_func => \&date_parse_naive
         },
         "Transaction type"                                => {
             new_key          => "type",
@@ -136,7 +136,9 @@ sub field_parse()
     return $value;
 }
 
-sub date_parse()
+# This functions is a huge bottleneck.  Just creating date object
+# takes a fair bit of time.
+sub date_parse_slow()
 {
     my $date_str = shift;
     my $date     = new Date::Manip::Date;
@@ -152,6 +154,15 @@ sub date_parse()
 
     $date_str = $date->printf("%m%d%y");
     return $date_str;
+}
+
+# Assumes format: Tue Feb 14 11:00:00 2012 CST
+sub date_parse_naive()
+{
+    my $date_str = shift;
+    my @fields   = split(/ /, $date_str);
+    my $new_str  = sprintf("%02d%s%04d", $fields[2], $fields[1], $fields[4]);
+    return $new_str;
 }
 
 sub trim()
