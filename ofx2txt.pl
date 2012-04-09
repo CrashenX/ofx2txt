@@ -2,25 +2,40 @@
 use warnings FATAL => 'all';
 use strict;
 use Getopt::Long;
+use Date::Manip;
+
+my $TZ_ABBR =
+"(ADT|AFT|AKDT|AKST|ALMT|AMST|AMT|ANAST|ANAT|AQTT|ART|AST|AZOST|AZOT|AZST|AZT|\
+BNT|BOT|BRST|BRT|BST|BTT|CAST|CAT|CCT|CDT|CEST|CET|CHADT|CHAST|ChST|CKT|CLST|\
+CLT|COT|CST|CVT|CXT|DAVT|EASST|EAST|EAT|ECT|EDT|EEST|EET|EGST|EGT|EST|ET|FJST|\
+FJT|FKST|FKT|FNT|GALT|GAMT|GET|GFT|GILT|GMT|GST|GYT|HAA|HAC|HADT|HAE|HAP|HAR|\
+HAST|HAT|HAY|HKT|HLV|HNA|HNC|HNE|HNP|HNR|HNT|HNY|HOVT|ICT|IDT|IOT|IRDT|IRKST|\
+IRKT|IRST|IST|JST|KGT|KRAST|KRAT|KST|KUYT|LHDT|LHST|LINT|MAGST|MAGT|MART|MAWT|\
+MDT|MESZ|MEZ|MHT|MMT|MSD|MSK|MST|MUT|MVT|MYT|NCT|NDT|NFT|NOVST|NOVT|NPT|NST|\
+NUT|NZDT|NZST|OMSST|OMST|PDT|PET|PETST|PETT|PGT|PHOT|PHT|PKT|PMDT|PMST|PONT|\
+PST|PT|PWT|PYST|PYT|RET|SAMT|SAST|SBT|SCT|SGT|SRT|SST|TAHT|TFT|TJT|TKT|TLT|\
+TMT|TVT|ULAT|UYST|UYT|UZT|VET|VLAST|VLAT|VUT|WAST|WAT|WDT|WEST|WESZ|WET|WEZ|\
+WFT|WGST|WGT|WIB|WIT|WITA|WST|WT|YAKST|YAKT|YAPT|YEKST|YEKT)";
+my $TZ_REX = qr/ $TZ_ABBR|$TZ_ABBR /i;
 
 my $OFX_ENTRY_PREFIX = "ofx_proc_";
 my $OFX_KEYS = { # if the value is 0, those fields will not be processed
     account => {
         "Account ID"                                      => {
             new_key          => "id",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "Account type"                                    => {
             new_key          => "type",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "Account #"                                       => {
             new_key          => "number",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "Bank ID"                                         => {
             new_key          => "bank_id",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "Account name"                                    => 0,
         "Currency"                                        => 0
@@ -28,46 +43,46 @@ my $OFX_KEYS = { # if the value is 0, those fields will not be processed
     statement => {
         "Account ID"                                      => {
             new_key          => "account_id",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "Start date of this statement"                    => {
             new_key          => "start_date",
-            value_parse_func => \&foo
+            value_parse_func => \&date_parse
         },
         "End date of this statement"                      => {
             new_key          => "end_date",
-            value_parse_func => \&foo
+            value_parse_func => \&date_parse
         },
         "Ledger balance"                                  => {
             new_key          => "balance",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "Currency"                                        => 0
     },
     transaction => {
         "Financial institution's ID for this transaction" => {
             new_key          => "id",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "Account ID"                                      => {
             new_key          => "account_id",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "Date posted"                                     => {
             new_key          => "date",
-            value_parse_func => \&foo
+            value_parse_func => \&date_parse
         },
         "Transaction type"                                => {
             new_key          => "type",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "Total money amount"                              => {
             new_key          => "amount",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "Name of payee or transaction description"        => {
             new_key          => "description",
-            value_parse_func => \&foo
+            value_parse_func => \&field_parse
         },
         "# of units"                                      => 0,
         "Unit price"                                      => 0
@@ -115,10 +130,28 @@ sub print_fields()
     print "\n";
 }
 
-sub foo()
+sub field_parse()
 {
     my $value = shift;
     return $value;
+}
+
+sub date_parse()
+{
+    my $date_str = shift;
+    my $date     = new Date::Manip::Date;
+    my $err      = 1;
+
+    $date_str =~ s/$TZ_REX//;
+    $err = $date->parse($date_str);
+
+    if($err) {
+        print "$err\n";
+        die($date->err($err));
+    }
+
+    $date_str = $date->printf("%m%d%y");
+    return $date_str;
 }
 
 sub trim()
