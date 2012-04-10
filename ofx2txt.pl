@@ -112,6 +112,21 @@ my $PRINT_ORDER = {
     }
 };
 
+my $MONTH = {
+    Jan => 1,
+    Feb => 2,
+    Mar => 3,
+    Apr => 4,
+    May => 5,
+    Jun => 6,
+    Jul => 7,
+    Aug => 8,
+    Sep => 9,
+    Oct => 10,
+    Nov => 11,
+    Dec => 12
+};
+
 my @files = ();
 my $options = GetOptions (
     "f|file=s" => \@files,
@@ -136,7 +151,7 @@ sub field_parse()
     return $value;
 }
 
-# This functions is a huge bottleneck.  Just creating date object
+# This functions is a huge bottleneck. Just creating date object
 # takes a fair bit of time.
 sub date_parse_slow()
 {
@@ -161,7 +176,26 @@ sub date_parse_naive()
 {
     my $date_str = shift;
     my @fields   = split(/ /, $date_str);
-    my $new_str  = sprintf("%02d%s%04d", $fields[2], $fields[1], $fields[4]);
+    my $month    = 0;
+    my $day      = $fields[2];
+    my $year     = $fields[4];
+    my $new_str  = "";
+
+    unless(exists $MONTH->{$fields[1]} && defined $MONTH->{$fields[1]}) {
+        die("Invalid month; date format changed?");
+    }
+
+    # If this program is still being used in the year 2100 ... OH MY!
+    unless(2000 < $year && $year < 2099) {
+        die("Unexpected year; date format changed?");
+    }
+
+    unless(0 < $day && $day <= 31) {
+        die("Invalid day; date format changed?");
+    }
+
+    $month = $MONTH->{$fields[1]};
+    $new_str = sprintf("%04d%02d%02d", $year, $month, $day);
     return $new_str;
 }
 
