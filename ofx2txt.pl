@@ -74,7 +74,7 @@ my $OFX_KEYS = { # if the value is 0, those fields will not be processed
         },
         "Transaction type"                                => {
             new_key          => "type",
-            value_parse_func => \&field_parse
+            value_parse_func => \&type_parse
         },
         "Total money amount"                              => {
             new_key          => "amount",
@@ -197,6 +197,18 @@ sub date_parse_naive()
     $month = $MONTH->{$fields[1]};
     $new_str = sprintf("%04d%02d%02d", $year, $month, $day);
     return $new_str;
+}
+
+sub type_parse()
+{
+    my $type   = shift;
+    my @parsed = split(/:/,$type,2);
+
+    if("" eq $parsed[0]) {
+        die("Unexpected type; type format changed?");
+    }
+
+    return $parsed[0];
 }
 
 sub trim()
