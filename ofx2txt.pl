@@ -33,10 +33,6 @@ my $OFX_KEYS = { # if the value is 0, those fields will not be processed
             new_key          => "number",
             value_parse_func => \&field_parse
         },
-        "Bank ID"                                         => {
-            new_key          => "bank_id",
-            value_parse_func => \&field_parse
-        },
         "Account name"                                    => 0,
         "Currency"                                        => 0
     },
@@ -94,7 +90,6 @@ my $PRINT_ORDER = {
         id          => 0,
         type        => 1,
         number      => 2,
-        bank_id     => 3
     },
     statement   => {
         account_id  => 0,
