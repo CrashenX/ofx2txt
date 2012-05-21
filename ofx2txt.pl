@@ -391,6 +391,19 @@ sub sanitize_filenames()
     return $ofiles;
 }
 
+# Transactions are only unique per account. The account id needs to be appended
+# to help enforce uniqueness of transaction ids across all accounts.
+# REFACTOR: This function and the call to it are not as general as the rest of
+# the application and should be refactored.
+sub make_trans_id_uniq()
+{
+    my $entries = shift;
+
+    for my $entry (@$entries) {
+        $entry->{'id'} .= ' ' . $entry->{'account_id'};
+    }
+}
+
 sub main()
 {
     my $files  = shift;
@@ -405,6 +418,8 @@ sub main()
     for my $file (@$files) {
         &parse_file($file, \%entries);
     }
+
+    &make_trans_id_uniq($entries{'transaction'});
 
     while(my ($type, $entry_list) = each(%entries)) {
         # print output format as comment for each type
