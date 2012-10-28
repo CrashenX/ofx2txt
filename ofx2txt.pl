@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 use warnings FATAL => 'all';
 use strict;
-use Getopt::Long;
 use Date::Manip;
 
 my $TZ_ABBR =
@@ -122,11 +121,7 @@ my $MONTH = {
     Dec => 12
 };
 
-my @files = ();
-my $options = GetOptions (
-    "f|file=s" => \@files,
-    "h|help"   => \(my $help)
-);
+my @files = @ARGV;
 
 sub print_fields()
 {
